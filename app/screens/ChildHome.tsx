@@ -88,7 +88,7 @@ function PetTab() {
 
   return (
     <View>
-      <PetView pet={p} />
+      <PetView pet={p} reactKey={p.xp + p.level * 100000} />
       <Card>
         <StatBar label="🍖 飽足" value={p.hunger} color={colors.hunger} />
         <StatBar label="😄 快樂" value={p.happiness} color={colors.happiness} />

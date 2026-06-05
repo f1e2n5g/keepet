@@ -5,6 +5,7 @@ import { authMiddleware, requireChild, requireParent } from "../middleware";
 import { newId, now } from "../ids";
 import { getBalance, ledgerInsert } from "../ledger";
 import { getPetWithDecay, computeFeed, petUpdateStmt } from "../pet";
+import { evaluateAchievements } from "../achievements";
 
 const shop = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -119,6 +120,7 @@ shop.post("/:itemId/buy", requireChild, async (c) => {
       xp: Number(item.payload.xp ?? 0),
     });
     await c.env.DB.batch([spend, petUpdateStmt(c.env.DB, fed)]);
+    c.executionCtx.waitUntil(evaluateAchievements(c.env.DB, childId).then(() => {}));
     return c.json({ balance: balance - item.cost, pet: fed });
   }
 
@@ -131,6 +133,7 @@ shop.post("/:itemId/buy", requireChild, async (c) => {
         "INSERT INTO reward_redemptions (id, child_id, item_id, status, requested_at) VALUES (?,?,?,'requested',?)",
       ).bind(redemptionId, childId, item.id, now()),
     ]);
+    c.executionCtx.waitUntil(evaluateAchievements(c.env.DB, childId).then(() => {}));
     return c.json({ balance: balance - item.cost, redemption_id: redemptionId });
   }
 
@@ -142,6 +145,7 @@ shop.post("/:itemId/buy", requireChild, async (c) => {
       "INSERT INTO inventory (id, child_id, item_id, acquired_at, consumed) VALUES (?,?,?,?,0)",
     ).bind(invId, childId, item.id, now()),
   ]);
+  c.executionCtx.waitUntil(evaluateAchievements(c.env.DB, childId).then(() => {}));
   return c.json({
     balance: balance - item.cost,
     inventory_item: { id: invId, child_id: childId, item_id: item.id, acquired_at: now(), consumed: false },

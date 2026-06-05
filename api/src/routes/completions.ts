@@ -4,6 +4,8 @@ import type { PendingCompletion, ReviewBody } from "@keepet/shared";
 import { authMiddleware, requireParent } from "../middleware";
 import { now } from "../ids";
 import { getBalance, ledgerInsert } from "../ledger";
+import { notifyUsers } from "../push";
+import { evaluateAchievements } from "../achievements";
 
 const completions = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -31,7 +33,7 @@ completions.post("/:id/review", requireParent, async (c) => {
   const body = await c.req.json<ReviewBody>();
 
   const comp = await c.env.DB.prepare(
-    `SELECT tc.*, t.points AS task_points, t.family_id AS family_id
+    `SELECT tc.*, t.points AS task_points, t.family_id AS family_id, t.title AS task_title
      FROM task_completions tc
      JOIN tasks t ON t.id = tc.task_id
      WHERE tc.id = ?`,
@@ -43,6 +45,7 @@ completions.post("/:id/review", requireParent, async (c) => {
       status: string;
       task_points: number;
       family_id: string;
+      task_title: string;
     }>();
 
   if (!comp || comp.family_id !== c.var.jwt.family_id) {
@@ -66,6 +69,8 @@ completions.post("/:id/review", requireParent, async (c) => {
         ref_id: id,
       }),
     ]);
+    // 賺到積分後即時評估成就解鎖
+    c.executionCtx.waitUntil(evaluateAchievements(c.env.DB, comp.child_id).then(() => {}));
   } else {
     await c.env.DB.prepare(
       "UPDATE task_completions SET status='rejected', reviewed_at=?, reviewed_by=? WHERE id=?",
@@ -73,6 +78,18 @@ completions.post("/:id/review", requireParent, async (c) => {
       .bind(ts, c.var.jwt.sub, id)
       .run();
   }
+
+  // 通知小孩審核結果（fire-and-forget）
+  c.executionCtx.waitUntil(
+    body.approve
+      ? notifyUsers(
+          c.env.DB,
+          [comp.child_id],
+          "🎉 任務通過了！",
+          `「${comp.task_title}」獲得 ${comp.task_points} ⭐`,
+        )
+      : notifyUsers(c.env.DB, [comp.child_id], "任務被退回", `「${comp.task_title}」再試試看吧`),
+  );
 
   const balance = await getBalance(c.env.DB, comp.child_id);
   return c.json({ ok: true, approved: !!body.approve, child_id: comp.child_id, balance });

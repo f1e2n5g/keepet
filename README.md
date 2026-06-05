@@ -80,4 +80,17 @@ pnpm exec eas build -p android --profile production   # 產生 .aab
   - 🎁 **現實獎勵兌現**：家長建立獎勵 → 小孩用積分兌換 → 家長標記已實現
   - 🏅 **圖鑑/成就**：6 個成就，達標自動解鎖（讀取時評估）
   - 🔁 **每日/每週任務重置**：以時間區間計算（免排程，改系統時間也無法作弊）
-- **Phase 3（待辦）**：Lottie 動畫、Android `.aab` 上架 Play Store、推播通知、家長週報。
+- **Phase 3（已完成）**：
+  - 🎬 **寵物動畫**：用 React Native Animated（閒置彈跳、快樂跳更快、餵食放大回彈），
+    web + Android 皆可，無需動畫素材；之後可無痛換成 Lottie。
+  - 📊 **家長週報**：每個小孩本週完成任務數、賺/花積分、餘額、寵物等級、成就數（孩子頁顯示）。
+  - 🔔 **推播通知**：小孩提交→通知家長；家長核可/退回→通知小孩（Worker 經 Expo Push API 送出）。
+  - 🤖 **Android 打包設定**：`eas.json`（apk/aab profiles）+ `expo-notifications` 設定。
+- **Phase 4（待辦）**：真實寵物美術/Lottie、Play Store 正式上架、家長 email 週報、好友互動。
+
+### 推播注意事項
+推播需要**實機**與 **EAS projectId**（web 不支援）。設定步驟：
+1. `cd app && pnpm exec eas init` → 把產生的 projectId 填入 `app.json` 的 `extra.eas.projectId`
+2. 用 `eas build` 產生 development/preview build 安裝到實機
+3. App 登入後會自動向後端 `POST /push/register` 註冊 token；後端在提交/審核時送出推播。
+未設定時會靜默略過，不影響其他功能。

@@ -9,6 +9,8 @@ import shop from "./routes/shop";
 import pet from "./routes/pet";
 import redemptions from "./routes/redemptions";
 import achievements from "./routes/achievements";
+import reports from "./routes/reports";
+import push from "./routes/push";
 
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -26,6 +28,8 @@ app.route("/shop", shop);
 app.route("/pet", pet);
 app.route("/redemptions", redemptions);
 app.route("/achievements", achievements);
+app.route("/reports", reports);
+app.route("/push", push);
 
 app.notFound((c) => c.json({ error: "找不到此路徑" }, 404));
 app.onError((err, c) => {

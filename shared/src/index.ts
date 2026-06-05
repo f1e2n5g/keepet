@@ -229,3 +229,25 @@ export interface AchievementState extends AchievementDef {
   unlocked: boolean;
   unlocked_at: number | null;
 }
+
+// ─── 家長週報 ────────────────────────────────────────────
+export interface WeeklyReport {
+  child_id: string;
+  child_name: string;
+  avatar: string;
+  week_start: number;
+  tasks_approved: number;
+  points_earned: number;
+  points_spent: number;
+  balance: number;
+  pet_level: number;
+  achievements_unlocked: number;
+}
+
+// ─── 推播 ────────────────────────────────────────────────
+export type Platform = "ios" | "android" | "web";
+
+export interface RegisterPushBody {
+  token: string;
+  platform: Platform;
+}
