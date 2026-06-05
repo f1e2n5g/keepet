@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "KeePet",
+    "slug": "keepet",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "keepet",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#FFF7ED"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "android": {
+      "package": "com.keepet.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#FFF7ED"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "extra": {
+      "apiUrl": "http://localhost:8787"
+    }
+  }
+}

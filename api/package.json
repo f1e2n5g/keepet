@@ -1,0 +1,25 @@
+{
+  "name": "@keepet/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "migrate:local": "wrangler d1 migrations apply keepet --local",
+    "migrate:remote": "wrangler d1 migrations apply keepet --remote",
+    "seed:local": "wrangler d1 execute keepet --local --file=./seed.sql",
+    "seed:remote": "wrangler d1 execute keepet --remote --file=./seed.sql",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@keepet/shared": "workspace:*",
+    "hono": "^4.6.14"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241218.0",
+    "typescript": "^5.6.3",
+    "wrangler": "^3.95.0"
+  }
+}
