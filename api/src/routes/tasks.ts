@@ -8,6 +8,19 @@ const tasks = new Hono<{ Bindings: Env; Variables: Variables }>();
 
 tasks.use("*", authMiddleware);
 
+/** 目前週期的起始時間戳（UTC）。once 回 0（永不重置）。 */
+function periodStart(recurrence: "once" | "daily" | "weekly"): number {
+  if (recurrence === "once") return 0;
+  const d = new Date();
+  if (recurrence === "daily") {
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  }
+  // weekly：以週一為一週起點
+  const dayOfWeek = (d.getUTCDay() + 6) % 7; // 週一=0
+  const monday = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - dayOfWeek);
+  return monday;
+}
+
 function rowToTask(row: Record<string, unknown>): Task {
   return {
     id: row.id as string,
@@ -129,14 +142,22 @@ tasks.post("/:id/complete", async (c) => {
     .first();
   if (pending) return c.json({ error: "你已經提交過，等家長審核中" }, 409);
 
-  // 一次性任務若已核可，不能再做（每日/每週的重置排程留待 Phase 2）
-  if (task.recurrence === "once") {
-    const approved = await c.env.DB.prepare(
-      "SELECT id FROM task_completions WHERE task_id = ? AND child_id = ? AND status = 'approved'",
-    )
-      .bind(taskId, c.var.jwt.sub)
-      .first();
-    if (approved) return c.json({ error: "這個任務已經完成囉" }, 409);
+  // 依重複週期決定「本期是否已完成」。每日/每週的重置由時間區間計算（免排程）。
+  const recurrence = task.recurrence as "once" | "daily" | "weekly";
+  const sinceTs = periodStart(recurrence);
+  const doneThisPeriod = await c.env.DB.prepare(
+    "SELECT id FROM task_completions WHERE task_id = ? AND child_id = ? AND status = 'approved' AND submitted_at >= ?",
+  )
+    .bind(taskId, c.var.jwt.sub, sinceTs)
+    .first();
+  if (doneThisPeriod) {
+    const msg =
+      recurrence === "daily"
+        ? "今天已經完成這個任務囉，明天再來！"
+        : recurrence === "weekly"
+          ? "這週已經完成這個任務囉！"
+          : "這個任務已經完成囉";
+    return c.json({ error: msg }, 409);
   }
 
   const id = newId("comp");

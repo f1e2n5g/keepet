@@ -7,9 +7,9 @@ import { Button, Card, H1, Muted, PointsBadge, StatBar } from "../components/ui"
 import { PetView } from "../components/PetView";
 import { EmptyState } from "./ParentHome";
 import { colors, spacing, radius } from "../lib/theme";
-import { xpForLevel, type ShopItem } from "@keepet/shared";
+import { xpForLevel, type ShopItem, type OwnedItem } from "@keepet/shared";
 
-type Tab = "pet" | "tasks" | "shop";
+type Tab = "pet" | "tasks" | "shop" | "dex";
 
 function notify(msg: string) {
   if (Platform.OS === "web") {
@@ -49,12 +49,14 @@ export function ChildHome() {
         <TabBtn label="🐱 寵物" active={tab === "pet"} onPress={() => setTab("pet")} />
         <TabBtn label="📋 任務" active={tab === "tasks"} onPress={() => setTab("tasks")} />
         <TabBtn label="🛒 商店" active={tab === "shop"} onPress={() => setTab("shop")} />
+        <TabBtn label="🏅 圖鑑" active={tab === "dex"} onPress={() => setTab("dex")} />
       </View>
 
       <ScrollView contentContainerStyle={styles.body}>
         {tab === "pet" && <PetTab />}
         {tab === "tasks" && <TasksTab />}
         {tab === "shop" && <ShopTab balance={balance.data?.balance ?? 0} />}
+        {tab === "dex" && <DexTab />}
       </ScrollView>
     </View>
   );
@@ -62,11 +64,28 @@ export function ChildHome() {
 
 // ─── 寵物 ────────────────────────────────────────────────
 function PetTab() {
+  const qc = useQueryClient();
   const pet = useQuery({ queryKey: ["pet"], queryFn: api.pet });
+  const wardrobe = useQuery({ queryKey: ["wardrobe"], queryFn: api.wardrobe });
+  const equip = useMutation({
+    mutationFn: (skin: string) => api.setSkin(skin),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pet"] });
+      qc.invalidateQueries({ queryKey: ["achievements"] });
+    },
+  });
+
   if (pet.isLoading) return <Muted>載入中…</Muted>;
   if (!pet.data) return <EmptyState emoji="🥚" text="還沒有寵物" />;
   const p = pet.data;
   const need = xpForLevel(p.level);
+  const skins: { skin: string; name: string }[] = [
+    { skin: "default", name: "原本" },
+    ...(wardrobe.data ?? [])
+      .filter((o: OwnedItem) => o.skin)
+      .map((o) => ({ skin: o.skin as string, name: o.name })),
+  ];
+
   return (
     <View>
       <PetView pet={p} />
@@ -76,6 +95,60 @@ function PetTab() {
         <StatBar label={`✨ 經驗 (Lv.${p.level})`} value={(p.xp / need) * 100} color={colors.blue} />
         <Muted>用積分去商店買食物，餵牠就會長大！</Muted>
       </Card>
+
+      <Card>
+        <Text style={styles.groupTitle}>🎨 衣櫥</Text>
+        {skins.length <= 1 ? (
+          <Muted>去商店買造型，就能幫寵物換裝！</Muted>
+        ) : (
+          <View style={styles.wardrobe}>
+            {skins.map((s) => {
+              const active = p.current_skin === s.skin;
+              return (
+                <Pressable
+                  key={s.skin}
+                  onPress={() => equip.mutate(s.skin)}
+                  style={[styles.skinChip, active && styles.skinChipActive]}
+                >
+                  <Text style={[styles.skinText, active && { color: "#fff" }]}>
+                    {active ? "✓ " : ""}
+                    {s.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+      </Card>
+    </View>
+  );
+}
+
+// ─── 圖鑑 / 成就 ─────────────────────────────────────────
+function DexTab() {
+  const dex = useQuery({ queryKey: ["achievements"], queryFn: api.achievements });
+  const items = dex.data ?? [];
+  const unlocked = items.filter((a) => a.unlocked).length;
+  return (
+    <View>
+      <Card>
+        <Text style={styles.groupTitle}>🏅 我的成就</Text>
+        <Muted>
+          已解鎖 {unlocked} / {items.length}
+        </Muted>
+      </Card>
+      {items.map((a) => (
+        <Card key={a.code} style={{ opacity: a.unlocked ? 1 : 0.55 }}>
+          <View style={styles.spread}>
+            <Text style={{ fontSize: 34 }}>{a.unlocked ? a.emoji : "🔒"}</Text>
+            <View style={{ flex: 1, marginLeft: spacing.sm }}>
+              <Text style={styles.taskTitle}>{a.name}</Text>
+              <Muted>{a.description}</Muted>
+            </View>
+            {a.unlocked ? <Text style={styles.doneTag}>達成</Text> : null}
+          </View>
+        </Card>
+      ))}
     </View>
   );
 }
@@ -141,12 +214,19 @@ const TYPE_LABEL: Record<ShopItem["type"], string> = {
 function ShopTab({ balance }: { balance: number }) {
   const qc = useQueryClient();
   const shop = useQuery({ queryKey: ["shop"], queryFn: api.shop });
+  const myRedemptions = useQuery({ queryKey: ["myRedemptions"], queryFn: api.myRedemptions });
   const buy = useMutation({
     mutationFn: (item: ShopItem) => api.buy(item.id),
     onSuccess: (_d, item) => {
       qc.invalidateQueries({ queryKey: ["balance"] });
       qc.invalidateQueries({ queryKey: ["pet"] });
-      notify(`買到「${item.name}」了！`);
+      qc.invalidateQueries({ queryKey: ["myRedemptions"] });
+      qc.invalidateQueries({ queryKey: ["achievements"] });
+      notify(
+        item.type === "real_reward"
+          ? `已兌換「${item.name}」，等家長幫你實現！`
+          : `買到「${item.name}」了！`,
+      );
     },
     onError: (e) =>
       notify(e instanceof ApiError && e.status === 402 ? "積分不夠，再去完成任務吧！" : "購買失敗"),
@@ -156,9 +236,23 @@ function ShopTab({ balance }: { balance: number }) {
   const groups = (Object.keys(TYPE_LABEL) as ShopItem["type"][])
     .map((type) => ({ type, list: items.filter((i) => i.type === type) }))
     .filter((g) => g.list.length > 0);
+  const redemptions = myRedemptions.data ?? [];
 
   return (
     <View>
+      {redemptions.length > 0 && (
+        <Card>
+          <Text style={styles.groupTitle}>🎁 我的兌換</Text>
+          {redemptions.map((r) => (
+            <View key={r.id} style={[styles.spread, { paddingVertical: 4 }]}>
+              <Text style={{ flex: 1, color: colors.text }}>{r.item_name}</Text>
+              <Text style={r.status === "fulfilled" ? styles.doneTag : styles.pendingTag}>
+                {r.status === "fulfilled" ? "已實現 ✓" : "等家長…"}
+              </Text>
+            </View>
+          ))}
+        </Card>
+      )}
       {groups.map((g) => (
         <View key={g.type}>
           <Text style={styles.groupTitle}>{TYPE_LABEL[g.type]}</Text>
@@ -237,4 +331,17 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     marginBottom: spacing.xs,
   },
+  wardrobe: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
+  skinChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: radius.pill,
+    backgroundColor: "#fff",
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  skinChipActive: { backgroundColor: colors.purple, borderColor: colors.purple },
+  skinText: { fontWeight: "700", color: colors.text },
+  doneTag: { color: colors.accent, fontWeight: "800" },
+  pendingTag: { color: colors.muted, fontWeight: "700" },
 });

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { Env, Variables } from "../env";
-import type { ShopItem } from "@keepet/shared";
-import { authMiddleware, requireChild } from "../middleware";
+import type { ShopItem, CreateShopItemBody } from "@keepet/shared";
+import { authMiddleware, requireChild, requireParent } from "../middleware";
 import { newId, now } from "../ids";
 import { getBalance, ledgerInsert } from "../ledger";
 import { getPetWithDecay, computeFeed, petUpdateStmt } from "../pet";
@@ -46,6 +46,41 @@ shop.get("/", async (c) => {
     .bind(c.var.jwt.family_id)
     .all<ItemRow>();
   return c.json((results ?? []).map(toItem));
+});
+
+// 家長新增自家商品（常用於「現實獎勵」，例如看電視 30 分鐘）
+shop.post("/", requireParent, async (c) => {
+  const body = await c.req.json<CreateShopItemBody>();
+  if (!body.name || typeof body.cost !== "number" || body.cost < 0) {
+    return c.json({ error: "需要商品名稱與非負的積分價格" }, 400);
+  }
+  const id = newId("item");
+  await c.env.DB.prepare(
+    "INSERT INTO shop_items (id, family_id, type, name, cost, payload) VALUES (?,?,?,?,?,?)",
+  )
+    .bind(
+      id,
+      c.var.jwt.family_id,
+      body.type,
+      body.name,
+      Math.floor(body.cost),
+      JSON.stringify(body.payload ?? {}),
+    )
+    .run();
+  const row = await c.env.DB.prepare("SELECT * FROM shop_items WHERE id = ?").bind(id).first<ItemRow>();
+  return c.json(toItem(row!), 201);
+});
+
+// 家長刪除自家商品（不能刪全域商品）
+shop.delete("/:itemId", requireParent, async (c) => {
+  const itemId = c.req.param("itemId");
+  const res = await c.env.DB.prepare(
+    "DELETE FROM shop_items WHERE id = ? AND family_id = ?",
+  )
+    .bind(itemId, c.var.jwt.family_id)
+    .run();
+  if (!res.meta.changes) return c.json({ error: "找不到可刪除的商品" }, 404);
+  return c.json({ ok: true });
 });
 
 // 小孩購買：扣點與套用效果在同一個 D1 batch（交易）完成

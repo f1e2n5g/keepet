@@ -7,6 +7,8 @@ import tasks from "./routes/tasks";
 import completions from "./routes/completions";
 import shop from "./routes/shop";
 import pet from "./routes/pet";
+import redemptions from "./routes/redemptions";
+import achievements from "./routes/achievements";
 
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -22,6 +24,8 @@ app.route("/tasks", tasks);
 app.route("/completions", completions);
 app.route("/shop", shop);
 app.route("/pet", pet);
+app.route("/redemptions", redemptions);
+app.route("/achievements", achievements);
 
 app.notFound((c) => c.json({ error: "找不到此路徑" }, 404));
 app.onError((err, c) => {
