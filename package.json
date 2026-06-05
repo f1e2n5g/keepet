@@ -1,0 +1,17 @@
+{
+  "name": "keepet",
+  "version": "0.1.0",
+  "private": true,
+  "description": "KeePet — 兒童寵物養成 App (web + Android)",
+  "scripts": {
+    "api:dev": "pnpm --filter @keepet/api dev",
+    "api:migrate": "pnpm --filter @keepet/api migrate:local",
+    "app:web": "pnpm --filter @keepet/app web",
+    "app:start": "pnpm --filter @keepet/app start",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20"
+  }
+}

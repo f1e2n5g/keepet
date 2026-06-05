@@ -1,0 +1,61 @@
+name: CI / Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # 任何 push / PR 都跑型別檢查
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r typecheck
+
+  # 只在 main 部署到 Cloudflare（需先在 repo 設定下列 secrets）
+  deploy:
+    needs: ci
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # 1) D1 migrations + 2) 部署 Worker API
+      - name: Apply D1 migrations
+        working-directory: api
+        run: pnpm exec wrangler d1 migrations apply keepet --remote
+      - name: Deploy Worker
+        working-directory: api
+        run: |
+          echo "${{ secrets.JWT_SECRET }}" | pnpm exec wrangler secret put JWT_SECRET
+          pnpm exec wrangler deploy
+
+      # 3) build Expo web + 部署 Cloudflare Pages
+      - name: Build web
+        working-directory: app
+        env:
+          EXPO_PUBLIC_API_URL: ${{ secrets.PUBLIC_API_URL }}
+        run: pnpm exec expo export --platform web
+      - name: Deploy Pages
+        working-directory: app
+        run: pnpm exec wrangler pages deploy dist --project-name=keepet
