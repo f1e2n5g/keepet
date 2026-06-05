@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { User } from "@keepet/shared";
 import { storageGet, storageSet, storageDelete } from "./storage";
 import { setAuthToken } from "./api";
+import { registerPush } from "./push";
 
 const TOKEN_KEY = "keepet.token";
 const USER_KEY = "keepet.user";
@@ -28,6 +29,7 @@ export const useSession = create<SessionState>((set) => ({
     if (token && userStr) {
       setAuthToken(token);
       set({ token, user: JSON.parse(userStr) as User, loading: false });
+      void registerPush();
     } else {
       set({ loading: false });
     }
@@ -40,6 +42,7 @@ export const useSession = create<SessionState>((set) => ({
       storageSet(USER_KEY, JSON.stringify(user)),
     ]);
     set({ token, user });
+    void registerPush();
   },
 
   signOut: async () => {

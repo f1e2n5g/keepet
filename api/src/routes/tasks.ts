@@ -3,6 +3,7 @@ import type { Env, Variables } from "../env";
 import type { CreateTaskBody, Task } from "@keepet/shared";
 import { authMiddleware, requireParent } from "../middleware";
 import { newId, now } from "../ids";
+import { notifyUsers, parentIdsOf } from "../push";
 
 const tasks = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -166,6 +167,17 @@ tasks.post("/:id/complete", async (c) => {
   )
     .bind(id, taskId, c.var.jwt.sub, now())
     .run();
+
+  // 通知家長有任務待審核（fire-and-forget，不阻塞回應）
+  const childName = c.var.jwt.name;
+  const taskTitle = task.title as string;
+  c.executionCtx.waitUntil(
+    (async () => {
+      const parents = await parentIdsOf(c.env.DB, c.var.jwt.family_id);
+      await notifyUsers(c.env.DB, parents, "📋 有任務待審核", `${childName} 完成了「${taskTitle}」`);
+    })(),
+  );
+
   return c.json({ id, status: "pending" }, 201);
 });
 

@@ -177,6 +177,7 @@ function ApprovalsTab() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["pending"] });
       qc.invalidateQueries({ queryKey: ["children"] });
+      qc.invalidateQueries({ queryKey: ["report"] });
     },
   });
 
@@ -222,6 +223,8 @@ function ChildrenTab({
 }) {
   const qc = useQueryClient();
   const children = useQuery({ queryKey: ["children"], queryFn: api.listChildren });
+  const report = useQuery({ queryKey: ["report"], queryFn: api.report });
+  const reportByChild = new Map((report.data ?? []).map((r) => [r.child_id, r]));
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState(AVATARS[0]);
   const [pin, setPin] = useState("");
@@ -301,7 +304,9 @@ function ChildrenTab({
         />
       </Card>
 
-      {(children.data ?? []).map((c) => (
+      {(children.data ?? []).map((c) => {
+        const r = reportByChild.get(c.id);
+        return (
         <Card key={c.id}>
           <View style={styles.spread}>
             <Text style={{ fontSize: 32 }}>{c.avatar}</Text>
@@ -319,6 +324,16 @@ function ChildrenTab({
               style={{ paddingVertical: 8, paddingHorizontal: 16, minHeight: 0 }}
             />
           </View>
+
+          {r && (
+            <View style={styles.weekRow}>
+              <Text style={styles.weekLabel}>本週</Text>
+              <Text style={styles.weekStat}>✅ {r.tasks_approved} 任務</Text>
+              <Text style={styles.weekStat}>⭐ +{r.points_earned}</Text>
+              <Text style={styles.weekStat}>🛒 -{r.points_spent}</Text>
+              <Text style={styles.weekStat}>🏅 {r.achievements_unlocked}</Text>
+            </View>
+          )}
 
           {loginFor?.id === c.id && (
             <View style={{ marginTop: spacing.sm }}>
@@ -349,7 +364,8 @@ function ChildrenTab({
             </View>
           )}
         </Card>
-      ))}
+        );
+      })}
       {children.data?.length === 0 && <Muted>還沒有小朋友，先新增一位吧！</Muted>}
     </View>
   );
@@ -557,4 +573,16 @@ const styles = StyleSheet.create({
   },
   error: { color: colors.danger, marginBottom: spacing.sm, fontWeight: "600" },
   empty: { alignItems: "center", paddingVertical: 60, gap: spacing.sm },
+  weekRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  weekLabel: { fontWeight: "800", color: colors.muted, fontSize: 12 },
+  weekStat: { fontWeight: "700", color: colors.text, fontSize: 13 },
 });

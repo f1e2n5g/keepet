@@ -3,6 +3,7 @@ import type { Env, Variables } from "../env";
 import type { OwnedItem } from "@keepet/shared";
 import { authMiddleware } from "../middleware";
 import { getPetWithDecay, petUpdateStmt } from "../pet";
+import { evaluateAchievements } from "../achievements";
 
 const pet = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -65,6 +66,7 @@ pet.post("/skin", async (c) => {
   if (!p) return c.json({ error: "找不到寵物" }, 404);
   const updated = { ...p, current_skin: skin };
   await petUpdateStmt(c.env.DB, updated).run();
+  c.executionCtx.waitUntil(evaluateAchievements(c.env.DB, c.var.jwt.sub).then(() => {}));
   return c.json(updated);
 });
 

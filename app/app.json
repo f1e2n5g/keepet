@@ -13,6 +13,7 @@
     "assetBundlePatterns": ["**/*"],
     "android": {
       "package": "com.keepet.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#FFF7ED"
       }
@@ -21,8 +22,19 @@
       "bundler": "metro",
       "output": "single"
     },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#F97316"
+        }
+      ]
+    ],
     "extra": {
-      "apiUrl": "http://localhost:8787"
+      "apiUrl": "http://localhost:8787",
+      "eas": {
+        "projectId": ""
+      }
     }
   }
 }

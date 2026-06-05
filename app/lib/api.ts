@@ -16,6 +16,8 @@ import type {
   OwnedItem,
   RedemptionDetail,
   AchievementState,
+  WeeklyReport,
+  RegisterPushBody,
 } from "@keepet/shared";
 
 const API_URL: string =
@@ -118,6 +120,11 @@ export const api = {
   achievements: () => request<AchievementState[]>("/achievements"),
   achievementsForChild: (childId: string) =>
     request<AchievementState[]>(`/achievements?child_id=${childId}`),
+
+  // ── 週報 / 推播 ──
+  report: () => request<WeeklyReport[]>("/reports"),
+  registerPush: (body: RegisterPushBody) =>
+    request<{ ok: boolean }>("/push/register", { method: "POST", body: JSON.stringify(body) }),
 };
 
 export { API_URL };
