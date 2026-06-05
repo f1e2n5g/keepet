@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KeePet 介面視覺稿</title>
+<style>
+  :root{
+    --bg:#FFF7ED; --card:#FFFFFF; --primary:#F97316; --primaryDark:#EA580C;
+    --accent:#22C55E; --danger:#EF4444; --blue:#3B82F6; --purple:#A855F7;
+    --text:#1F2937; --muted:#6B7280; --border:#FDE7CE;
+    --hunger:#F59E0B; --happiness:#EC4899;
+  }
+  *{box-sizing:border-box; font-family:-apple-system,"PingFang TC","Microsoft JhengHei",system-ui,sans-serif;}
+  body{margin:0; background:#F3F4F6; color:var(--text); padding:32px 16px;}
+  h1{text-align:center; font-size:26px; margin:0 0 4px;}
+  .sub{text-align:center; color:var(--muted); margin:0 0 28px; font-size:14px;}
+
+  .gallery{display:flex; flex-wrap:wrap; gap:32px; justify-content:center; align-items:flex-start;}
+  .frameWrap{display:flex; flex-direction:column; align-items:center; gap:10px;}
+  .frameLabel{font-weight:800; font-size:14px; color:var(--text);}
+  .frameLabel small{color:var(--muted); font-weight:600;}
+
+  /* 手機外框 */
+  .phone{
+    width:300px; height:620px; background:var(--bg); border-radius:36px;
+    border:10px solid #111827; overflow:hidden; position:relative;
+    box-shadow:0 16px 40px rgba(0,0,0,.18); display:flex; flex-direction:column;
+  }
+  .notch{position:absolute; top:0; left:50%; transform:translateX(-50%);
+    width:120px; height:22px; background:#111827; border-radius:0 0 14px 14px; z-index:5;}
+
+  /* 頂列 */
+  .top{padding:30px 16px 12px; display:flex; align-items:center; justify-content:space-between;}
+  .top .hi{font-size:18px; font-weight:800;}
+  .top .hi small{display:block; font-size:12px; color:var(--muted); font-weight:600;}
+  .pts{background:var(--accent); color:#fff; font-weight:800; padding:6px 14px; border-radius:999px; font-size:14px;}
+
+  .body{flex:1; overflow:auto; padding:4px 14px 14px;}
+  .body::-webkit-scrollbar{width:0;}
+
+  /* 分頁列 */
+  .tabs{display:flex; padding:6px 10px; gap:6px; background:var(--bg);
+    border-top:1px solid var(--border);}
+  .tab{flex:1; text-align:center; padding:8px 2px; font-size:12px; font-weight:700;
+    color:var(--muted); border-radius:12px;}
+  .tab.active{background:var(--primary); color:#fff;}
+
+  /* 卡片 / 元件 */
+  .card{background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:14px; margin-bottom:12px; box-shadow:0 2px 6px rgba(0,0,0,.04);}
+  .cardTitle{font-weight:800; font-size:16px; margin:0 0 8px;}
+  .muted{color:var(--muted); font-size:13px; margin:4px 0;}
+  .row{display:flex; align-items:center; gap:10px;}
+  .spread{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .btn{background:var(--primary); color:#fff; border:none; font-weight:800; font-size:15px;
+    padding:13px; border-radius:14px; width:100%; cursor:default;}
+  .btn.sm{width:auto; padding:8px 16px; font-size:13px; border-radius:12px;}
+  .btn.green{background:var(--accent);}
+  .btn.ghost{background:#fff; color:var(--muted); border:1px solid var(--border);}
+  .input{background:#fff; border:1px solid var(--border); border-radius:12px; padding:12px;
+    margin:6px 0; font-size:14px; color:var(--text);}
+  .field{font-size:12px; color:var(--muted); font-weight:700; margin-top:6px;}
+  .badge{background:var(--accent); color:#fff; font-weight:800; padding:3px 12px;
+    border-radius:999px; font-size:13px; display:inline-block;}
+  .badge.amber{background:var(--hunger);}
+  .badge.purple{background:var(--purple);}
+  .pill{display:inline-block; padding:6px 14px; border-radius:999px; background:#fff;
+    border:2px solid var(--border); font-weight:700; font-size:13px;}
+  .pill.on{background:var(--purple); color:#fff; border-color:var(--purple);}
+  .stat{margin:8px 0;}
+  .stat .lab{display:flex; justify-content:space-between; font-size:13px; font-weight:700; margin-bottom:3px;}
+  .bar{height:12px; border-radius:999px; background:#F1F1F4; overflow:hidden;}
+  .bar > i{display:block; height:100%; border-radius:999px;}
+  .tag{font-weight:800; font-size:12px;}
+  .tag.green{color:var(--accent);} .tag.muted{color:var(--muted);}
+  .sectionTitle{font-weight:800; font-size:14px; margin:14px 0 6px;}
+  .weekRow{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; padding-top:10px;
+    border-top:1px solid var(--border); font-size:12px;}
+  .weekRow .lab{font-weight:800; color:var(--muted);}
+  .weekRow b{font-weight:700;}
+
+  /* 寵物舞台 */
+  .stage{background:#FFEDD5; border-radius:24px; padding:24px; text-align:center; position:relative;}
+  .pet{font-size:96px; line-height:1; display:inline-block; animation:bounce 0.85s ease-in-out infinite;}
+  @keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-16px);}}
+  .shadow{width:80px; height:12px; border-radius:999px; background:rgba(0,0,0,.08); margin:6px auto 0;}
+  .petName{font-weight:800; font-size:18px; margin-top:8px;}
+  .lvl{display:inline-block; margin-top:6px; background:var(--purple); color:#fff;
+    padding:4px 14px; border-radius:999px; font-weight:800; font-size:13px;}
+
+  .center{text-align:center;}
+  .logo{font-size:64px; text-align:center; margin:24px 0 4px;}
+  .grid2{display:flex; gap:8px;} .grid2 .input{flex:1;}
+  .avatars{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0;}
+  .av{font-size:26px; width:44px; height:44px; display:flex; align-items:center; justify-content:center;
+    border-radius:12px; border:2px solid var(--border); background:#fff;}
+  .av.on{border-color:var(--primary); background:#FFEDD5;}
+  .note{max-width:760px; margin:30px auto 0; background:#fff; border:1px solid var(--border);
+    border-radius:16px; padding:18px 22px; color:var(--muted); font-size:14px; line-height:1.7;}
+  .note b{color:var(--text);}
+</style>
+</head>
+<body>
+  <h1>🐾 KeePet 介面視覺稿</h1>
+  <p class="sub">這是用 HTML 模擬的靜態畫面，配色與文案對齊實際 app（實際 app 用 Expo / React Native 寫，能跑在網頁與 Android）</p>
+
+  <div class="gallery">
+
+    <!-- 1. 登入 -->
+    <div class="frameWrap">
+      <div class="frameLabel">① 登入 / 註冊 <small>家長</small></div>
+      <div class="phone"><div class="notch"></div>
+        <div class="body" style="padding-top:40px;">
+          <div class="logo">🐾</div>
+          <div class="center" style="font-size:24px; font-weight:800;">KeePet</div>
+          <div class="center muted" style="margin-bottom:18px;">完成任務、養大寵物！</div>
+          <div class="card">
+            <div class="cardTitle">家長登入</div>
+            <input class="input" style="width:100%" placeholder="Email" />
+            <input class="input" style="width:100%" placeholder="密碼" />
+            <button class="btn">登入</button>
+            <div class="muted center" style="margin-top:12px;">還沒有帳號？<b style="color:var(--primary)">註冊一個家庭</b></div>
+          </div>
+          <div class="card center">
+            <div class="muted" style="margin:0">已經是這個家庭的小朋友？</div>
+            <button class="btn ghost" style="margin-top:8px">我是小朋友 →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. 家長 - 任務 -->
+    <div class="frameWrap">
+      <div class="frameLabel">② 任務管理 <small>家長</small></div>
+      <div class="phone"><div class="notch"></div>
+        <div class="top"><div class="hi">王媽媽<small>家長</small></div><span class="muted">登出</span></div>
+        <div class="body">
+          <div class="card">
+            <div class="cardTitle">新增任務</div>
+            <input class="input" style="width:100%" placeholder="任務名稱（例：自己刷牙）" />
+            <div class="grid2"><input class="input" value="積分 30" /><input class="input" value="每天" /></div>
+            <button class="btn">建立任務</button>
+          </div>
+          <div class="sectionTitle">目前任務</div>
+          <div class="card spread"><div><b>自己刷牙</b><div class="muted">每天</div></div><span class="badge">⭐ 30</span></div>
+          <div class="card spread"><div><b>整理書包</b><div class="muted">每天</div></div><span class="badge">⭐ 20</span></div>
+          <div class="card spread"><div><b>幫忙倒垃圾</b><div class="muted">每週</div></div><span class="badge">⭐ 50</span></div>
+        </div>
+        <div class="tabs">
+          <div class="tab active">任務</div><div class="tab">待審核 (2)</div>
+          <div class="tab">孩子</div><div class="tab">獎勵</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. 家長 - 待審核 -->
+    <div class="frameWrap">
+      <div class="frameLabel">③ 待審核 <small>家長</small></div>
+      <div class="phone"><div class="notch"></div>
+        <div class="top"><div class="hi">王媽媽<small>家長</small></div><span class="muted">登出</span></div>
+        <div class="body">
+          <div class="sectionTitle">小朋友說他完成了…</div>
+          <div class="card">
+            <div class="spread"><div class="row"><span style="font-size:28px">🦁</span><div><b>自己刷牙</b><div class="muted">小華 · 剛剛</div></div></div><span class="badge">⭐ 30</span></div>
+            <div class="row" style="margin-top:12px"><button class="btn green sm" style="flex:1">✓ 通過</button><button class="btn ghost sm" style="flex:1">退回</button></div>
+          </div>
+          <div class="card">
+            <div class="spread"><div class="row"><span style="font-size:28px">🐼</span><div><b>整理書包</b><div class="muted">小明 · 5 分鐘前</div></div></div><span class="badge">⭐ 20</span></div>
+            <div class="row" style="margin-top:12px"><button class="btn green sm" style="flex:1">✓ 通過</button><button class="btn ghost sm" style="flex:1">退回</button></div>
+          </div>
+        </div>
+        <div class="tabs">
+          <div class="tab">任務</div><div class="tab active">待審核 (2)</div>
+          <div class="tab">孩子</div><div class="tab">獎勵</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. 家長 - 孩子 + 週報 -->
+    <div class="frameWrap">
+      <div class="frameLabel">④ 孩子 + 本週報告 <small>家長</small></div>
+      <div class="phone"><div class="notch"></div>
+        <div class="top"><div class="hi">王媽媽<small>家長</small></div><span class="muted">登出</span></div>
+        <div class="body">
+          <div class="card">
+            <div class="cardTitle">新增小朋友</div>
+            <input class="input" style="width:100%" placeholder="名字" />
+            <div class="field">選一個頭像</div>
+            <div class="avatars"><span class="av on">🦁</span><span class="av">🐼</span><span class="av">🐶</span><span class="av">🦊</span><span class="av">🐱</span></div>
+            <div class="field">登入用 PIN（4 碼）</div>
+            <input class="input" style="width:100%" value="••••" />
+            <button class="btn">新增</button>
+          </div>
+          <div class="card">
+            <div class="spread"><div class="row"><span style="font-size:30px">🦁</span><div><b>小華</b><div><span class="badge" style="margin-top:2px">⭐ 120</span></div></div></div><button class="btn sm">登入</button></div>
+            <div class="weekRow"><span class="lab">本週</span><b>✅ 5 任務</b><b>⭐ +150</b><b>🛒 -90</b><b>🏅 3</b></div>
+          </div>
+        </div>
+        <div class="tabs">
+          <div class="tab">任務</div><div class="tab">待審核 (2)</div>
+          <div class="tab active">孩子</div><div class="tab">獎勵</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. 家長 - 獎勵 -->
+    <div class="frameWrap">
+      <div class="frameLabel">⑤ 現實獎勵 <small>家長</small></div>
+      <div class="phone"><div class="notch"></div>
+        <div class="top"><div class="hi">王媽媽<small>家長</small></div><span class="muted">登出</span></div>
+        <div class="body">
+          <div class="card">
+            <div class="cardTitle">新增現實獎勵</div>
+            <div class="muted">小朋友用積分兌換，你在現實中實現</div>
+            <input class="input" style="width:100%" placeholder="例：看電視 30 分鐘" />
+            <div class="field">需要積分</div><input class="input" style="width:100%" value="50" />
+            <button class="btn">新增獎勵</button>
+          </div>
+          <div class="sectionTitle">待兌現</div>
+          <div class="card spread"><div><b>看電視 30 分鐘</b><div class="muted">小華 想兌換</div></div><button class="btn green sm">已給獎勵</button></div>
+          <div class="sectionTitle">獎勵清單</div>
+          <div class="card spread"><b>挑一個點心</b><div class="row"><span class="badge">⭐ 30</span><span class="muted">刪除</span></div></div>
+        </div>
+        <div class="tabs">
+          <div class="tab">任務</div><div class="tab">待審核 (2)</div>
+          <div class="tab">孩子</div><div class="tab active">獎勵 (1)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. 小孩 - 寵物 -->
+    <div class="frameWrap">
+      <div class="frameLabel">⑥ 寵物主畫面 <small>小孩</small></div>
+      <div class="phone"><div class="notch"></div>
+        <div class="top"><div class="hi">嗨，小華！<small>🦁</small></div><span class="pts">⭐ 120</span></div>
+        <div class="body">
+          <div class="stage">
+            <div class="pet">😸</div>
+            <div class="shadow"></div>
+            <div class="petName">小獅子</div>
+            <div class="lvl">Lv.3</div>
+          </div>
+          <div class="card" style="margin-top:12px">
+            <div class="stat"><div class="lab"><span>🍖 飽足</span><span>80%</span></div><div class="bar"><i style="width:80%; background:var(--hunger)"></i></div></div>
+            <div class="stat"><div class="lab"><span>😄 快樂</span><span>90%</span></div><div class="bar"><i style="width:90%; background:var(--happiness)"></i></div></div>
+            <div class="stat"><div class="lab"><span>✨ 經驗 (Lv.3)</span><span>45%</span></div><div class="bar"><i style="width:45%; background:var(--blue)"></i></div></div>
+            <div class="muted">用積分去商店買食物，餵牠就會長大！</div>
+          </div>
+          <div class="card">
+            <div class="sectionTitle" style="margin-top:0">🎨 衣櫥</div>
+            <div class="avatars"><span class="pill on">✓ 太空裝</span><span class="pill">原本</span><span class="pill">皇冠</span></div>
+          </div>
+        </div>
+        <div class="tabs">
+          <div class="tab active">🐱 寵物</div><div class="tab">📋 任務</div>
+          <div class="tab">🛒 商店</div><div class="tab">🏅 圖鑑</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. 小孩 - 任務 -->
+    <div class="frameWrap">
+      <div class="frameLabel">⑦ 我的任務 <small>小孩</small></div>
+      <div class="phone"><div class="notch"></div>
+        <div class="top"><div class="hi">嗨，小華！<small>🦁</small></div><span class="pts">⭐ 120</span></div>
+        <div class="body">
+          <div class="sectionTitle" style="margin-top:4px">今天要做的事</div>
+          <div class="card spread"><div><b>自己刷牙</b><div class="muted">每天</div></div><button class="btn sm">我完成了</button></div>
+          <div class="card spread"><div><b>整理書包</b><div class="muted">每天</div></div><span class="tag muted">等家長確認…</span></div>
+          <div class="card spread" style="opacity:.6"><div><b>幫忙倒垃圾</b><div class="muted">每週</div></div><span class="tag green">✓ 今天完成</span></div>
+        </div>
+        <div class="tabs">
+          <div class="tab">🐱 寵物</div><div class="tab active">📋 任務</div>
+          <div class="tab">🛒 商店</div><div class="tab">🏅 圖鑑</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. 小孩 - 商店 -->
+    <div class="frameWrap">
+      <div class="frameLabel">⑧ 商店 <small>小孩</small></div>
+      <div class="phone"><div class="notch"></div>
+        <div class="top"><div class="hi">嗨，小華！<small>🦁</small></div><span class="pts">⭐ 120</span></div>
+        <div class="body">
+          <div class="card">
+            <div class="sectionTitle" style="margin-top:0">🎁 我的兌換</div>
+            <div class="spread" style="padding:3px 0"><span>看電視 30 分鐘</span><span class="tag muted">等家長…</span></div>
+            <div class="spread" style="padding:3px 0"><span>挑一個點心</span><span class="tag green">已實現 ✓</span></div>
+          </div>
+          <div class="sectionTitle">🍖 食物</div>
+          <div class="card spread"><div class="row"><span style="font-size:26px">🍖</span><b>大餐</b></div><button class="btn sm">⭐ 12</button></div>
+          <div class="sectionTitle">🎨 造型</div>
+          <div class="card spread"><div class="row"><span style="font-size:26px">🚀</span><b>太空裝</b></div><button class="btn sm">⭐ 50</button></div>
+          <div class="sectionTitle">🎉 現實獎勵</div>
+          <div class="card spread"><div class="row"><span style="font-size:26px">📺</span><b>看電視30分鐘</b></div><button class="btn sm green">⭐ 50</button></div>
+        </div>
+        <div class="tabs">
+          <div class="tab">🐱 寵物</div><div class="tab">📋 任務</div>
+          <div class="tab active">🛒 商店</div><div class="tab">🏅 圖鑑</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9. 小孩 - 圖鑑 -->
+    <div class="frameWrap">
+      <div class="frameLabel">⑨ 圖鑑 / 成就 <small>小孩</small></div>
+      <div class="phone"><div class="notch"></div>
+        <div class="top"><div class="hi">嗨，小華！<small>🦁</small></div><span class="pts">⭐ 120</span></div>
+        <div class="body">
+          <div class="card"><div class="sectionTitle" style="margin-top:0">🏅 我的成就</div><div class="muted">已解鎖 3 / 6</div></div>
+          <div class="card spread"><div class="row"><span style="font-size:30px">🏅</span><div><b>小幫手</b><div class="muted">完成第 1 個任務</div></div></div><span class="tag green">達成</span></div>
+          <div class="card spread"><div class="row"><span style="font-size:30px">🛍️</span><div><b>購物初體驗</b><div class="muted">第一次在商店購物</div></div></div><span class="tag green">達成</span></div>
+          <div class="card spread"><div class="row"><span style="font-size:30px">🎨</span><div><b>時尚達人</b><div class="muted">幫寵物換上造型</div></div></div><span class="tag green">達成</span></div>
+          <div class="card spread" style="opacity:.55"><div class="row"><span style="font-size:30px">🔒</span><div><b>存錢高手</b><div class="muted">累積賺到 100 積分</div></div></div></div>
+          <div class="card spread" style="opacity:.55"><div class="row"><span style="font-size:30px">🔒</span><div><b>寵物長大了</b><div class="muted">寵物達到 5 級</div></div></div></div>
+        </div>
+        <div class="tabs">
+          <div class="tab">🐱 寵物</div><div class="tab">📋 任務</div>
+          <div class="tab">🛒 商店</div><div class="tab active">🏅 圖鑑</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <b>說明：</b>這份是 <b>HTML 靜態視覺稿</b>，只是讓你「看大概長相」。實際 app 是用 <b>Expo / React Native</b>
+    寫的（同一套程式碼跑網頁 + Android），所以真機上會有：寵物會真的彈跳/餵食放大、分頁可點切換、
+    資料來自後端、餵食後數值即時變化、推播通知等。配色（暖橘 #F97316）、圓角、文案都與實際 app 一致。
+  </div>
+</body>
+</html>
