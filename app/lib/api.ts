@@ -7,11 +7,15 @@ import type {
   ChildLoginBody,
   CreateChildBody,
   CreateTaskBody,
+  CreateShopItemBody,
   Task,
   PendingCompletion,
   ShopItem,
   Pet,
   User,
+  OwnedItem,
+  RedemptionDetail,
+  AchievementState,
 } from "@keepet/shared";
 
 const API_URL: string =
@@ -91,11 +95,29 @@ export const api = {
   // ── 商店 / 寵物 ──
   shop: () => request<ShopItem[]>("/shop"),
   buy: (itemId: string) =>
-    request<{ balance: number; pet?: Pet }>(`/shop/${itemId}/buy`, { method: "POST" }),
+    request<{ balance: number; pet?: Pet; redemption_id?: string }>(`/shop/${itemId}/buy`, {
+      method: "POST",
+    }),
+  createShopItem: (body: CreateShopItemBody) =>
+    request<ShopItem>("/shop", { method: "POST", body: JSON.stringify(body) }),
+  deleteShopItem: (id: string) => request<{ ok: boolean }>(`/shop/${id}`, { method: "DELETE" }),
   pet: () => request<Pet>("/pet"),
   petForChild: (childId: string) => request<Pet>(`/pet?child_id=${childId}`),
   setSkin: (skin: string) =>
     request<Pet>("/pet/skin", { method: "POST", body: JSON.stringify({ skin }) }),
+  wardrobe: () => request<OwnedItem[]>("/pet/wardrobe"),
+
+  // ── 兌現（現實獎勵）──
+  redemptions: (status: string = "requested") =>
+    request<RedemptionDetail[]>(`/redemptions?status=${status}`),
+  myRedemptions: () => request<RedemptionDetail[]>("/redemptions"),
+  fulfillRedemption: (id: string) =>
+    request<{ ok: boolean }>(`/redemptions/${id}/fulfill`, { method: "POST" }),
+
+  // ── 成就 / 圖鑑 ──
+  achievements: () => request<AchievementState[]>("/achievements"),
+  achievementsForChild: (childId: string) =>
+    request<AchievementState[]>(`/achievements?child_id=${childId}`),
 };
 
 export { API_URL };

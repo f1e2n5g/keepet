@@ -170,3 +170,62 @@ export interface BuyResponse {
 export interface ApiError {
   error: string;
 }
+
+// ─── 兌現（現實獎勵）─────────────────────────────────────
+export type RedemptionStatus = "requested" | "fulfilled";
+
+export interface Redemption {
+  id: string;
+  child_id: string;
+  item_id: string;
+  status: RedemptionStatus;
+  requested_at: number;
+  fulfilled_at: number | null;
+}
+
+/** 家長端待兌現清單帶上小孩與商品資訊 */
+export interface RedemptionDetail extends Redemption {
+  child_name: string;
+  item_name: string;
+  item_cost: number;
+}
+
+/** 小孩擁有的造型/配件（inventory join 商品）*/
+export interface OwnedItem {
+  inventory_id: string;
+  item_id: string;
+  type: ShopItemType;
+  name: string;
+  skin: string | null; // skin 代號（type=skin 時有值）
+  acquired_at: number;
+}
+
+export interface CreateShopItemBody {
+  type: ShopItemType;
+  name: string;
+  cost: number;
+  payload?: Record<string, unknown>;
+}
+
+// ─── 成就 / 圖鑑 ─────────────────────────────────────────
+export interface AchievementDef {
+  code: string;
+  name: string;
+  emoji: string;
+  description: string;
+}
+
+/** 成就目錄（前後端共用）。解鎖條件的判定邏輯在後端。 */
+export const ACHIEVEMENTS: AchievementDef[] = [
+  { code: "first_task", name: "小幫手", emoji: "🏅", description: "完成第 1 個任務" },
+  { code: "task_master", name: "任務達人", emoji: "🏆", description: "完成 10 個任務" },
+  { code: "earn_100", name: "存錢高手", emoji: "💰", description: "累積賺到 100 積分" },
+  { code: "first_buy", name: "購物初體驗", emoji: "🛍️", description: "第一次在商店購物" },
+  { code: "level_5", name: "寵物長大了", emoji: "⭐", description: "寵物達到 5 級" },
+  { code: "dress_up", name: "時尚達人", emoji: "🎨", description: "幫寵物換上造型" },
+];
+
+export interface AchievementState extends AchievementDef {
+  unlocked: boolean;
+  unlocked_at: number | null;
+}

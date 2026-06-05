@@ -7,13 +7,14 @@ import { Button, Card, H1, Muted, PointsBadge } from "../components/ui";
 import { colors, spacing, radius } from "../lib/theme";
 import type { Task, PendingCompletion, Recurrence } from "@keepet/shared";
 
-type Tab = "tasks" | "approvals" | "children";
+type Tab = "tasks" | "approvals" | "children" | "rewards";
 const AVATARS = ["🐣", "🦊", "🐶", "🐱", "🐼", "🦁", "🐸", "🦄"];
 
 export function ParentHome() {
   const { user, signOut, signIn } = useSession();
   const [tab, setTab] = useState<Tab>("tasks");
   const pending = useQuery({ queryKey: ["pending"], queryFn: api.pendingCompletions });
+  const redemptions = useQuery({ queryKey: ["redemptions"], queryFn: () => api.redemptions("requested") });
 
   return (
     <View style={styles.flex}>
@@ -33,12 +34,18 @@ export function ParentHome() {
           onPress={() => setTab("approvals")}
         />
         <TabBtn label="孩子" active={tab === "children"} onPress={() => setTab("children")} />
+        <TabBtn
+          label={`獎勵${redemptions.data?.length ? ` (${redemptions.data.length})` : ""}`}
+          active={tab === "rewards"}
+          onPress={() => setTab("rewards")}
+        />
       </View>
 
       <ScrollView contentContainerStyle={styles.body}>
         {tab === "tasks" && <TasksTab />}
         {tab === "approvals" && <ApprovalsTab />}
         {tab === "children" && <ChildrenTab onChildLogin={signIn} />}
+        {tab === "rewards" && <RewardsTab />}
       </ScrollView>
     </View>
   );
@@ -348,6 +355,117 @@ function ChildrenTab({
   );
 }
 
+// ─── 獎勵（現實獎勵 + 兌現）───────────────────────────────
+function RewardsTab() {
+  const qc = useQueryClient();
+  const shop = useQuery({ queryKey: ["shop"], queryFn: api.shop });
+  const redemptions = useQuery({
+    queryKey: ["redemptions"],
+    queryFn: () => api.redemptions("requested"),
+  });
+  const [name, setName] = useState("");
+  const [cost, setCost] = useState("20");
+  const [error, setError] = useState<string | null>(null);
+
+  const create = useMutation({
+    mutationFn: () =>
+      api.createShopItem({ type: "real_reward", name: name.trim(), cost: Number(cost) || 0 }),
+    onSuccess: () => {
+      setName("");
+      setCost("20");
+      qc.invalidateQueries({ queryKey: ["shop"] });
+    },
+    onError: (e) => setError(e instanceof ApiError ? e.message : "新增失敗"),
+  });
+  const removeItem = useMutation({
+    mutationFn: (id: string) => api.deleteShopItem(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["shop"] }),
+  });
+  const fulfill = useMutation({
+    mutationFn: (id: string) => api.fulfillRedemption(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["redemptions"] }),
+  });
+
+  const rewards = (shop.data ?? []).filter((i) => i.type === "real_reward");
+  const pending = redemptions.data ?? [];
+
+  return (
+    <View>
+      <Card>
+        <Text style={styles.cardTitle}>新增現實獎勵</Text>
+        <Muted>小朋友用積分兌換，你在現實中實現（例如：看電視 30 分鐘、選一個點心）</Muted>
+        <TextInput
+          style={[styles.input, { marginTop: spacing.sm }]}
+          placeholder="獎勵名稱"
+          placeholderTextColor={colors.muted}
+          value={name}
+          onChangeText={setName}
+        />
+        <Text style={styles.fieldLabel}>需要積分</Text>
+        <TextInput
+          style={styles.input}
+          keyboardType="number-pad"
+          value={cost}
+          onChangeText={setCost}
+        />
+        {error && <Text style={styles.error}>{error}</Text>}
+        <Button
+          label="新增獎勵"
+          onPress={() => {
+            setError(null);
+            if (!name.trim()) return setError("請輸入獎勵名稱");
+            create.mutate();
+          }}
+          loading={create.isPending}
+        />
+      </Card>
+
+      {pending.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>待兌現</Text>
+          {pending.map((r) => (
+            <Card key={r.id}>
+              <View style={styles.spread}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.taskTitle}>{r.item_name}</Text>
+                  <Muted>{r.child_name} 想兌換</Muted>
+                </View>
+                <Button
+                  label="已給獎勵"
+                  variant="success"
+                  onPress={() => fulfill.mutate(r.id)}
+                  style={{ paddingVertical: 10, paddingHorizontal: 16, minHeight: 0 }}
+                />
+              </View>
+            </Card>
+          ))}
+        </>
+      )}
+
+      <Text style={styles.sectionTitle}>獎勵清單</Text>
+      {rewards.map((item) => (
+        <Card key={item.id}>
+          <View style={styles.spread}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.taskTitle}>{item.name}</Text>
+            </View>
+            <PointsBadge points={item.cost} />
+            {item.family_id ? (
+              <Button
+                label="刪除"
+                variant="ghost"
+                onPress={() => removeItem.mutate(item.id)}
+                style={{ marginLeft: spacing.sm, paddingVertical: 8, paddingHorizontal: 14, minHeight: 0 }}
+              />
+            ) : null}
+          </View>
+        </Card>
+      ))}
+      {rewards.length === 0 && <Muted>還沒有現實獎勵，先新增一個吧！</Muted>}
+    </View>
+  );
+}
+
 // ─── 小元件 ──────────────────────────────────────────────
 function TabBtn({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
@@ -392,6 +510,13 @@ const styles = StyleSheet.create({
   tabBtnTextActive: { color: "#fff" },
   body: { padding: spacing.lg, paddingBottom: 60 },
   cardTitle: { fontSize: 18, fontWeight: "800", color: colors.text, marginBottom: spacing.sm },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: colors.text,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
   taskTitle: { fontSize: 17, fontWeight: "700", color: colors.text },
   row: { flexDirection: "row", alignItems: "flex-end" },
   spread: { flexDirection: "row", alignItems: "center" },
