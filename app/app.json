@@ -7,8 +7,11 @@
     "scheme": "keepet",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "icon": "./assets/icon.png",
     "splash": {
-      "backgroundColor": "#FFF7ED"
+      "image": "./assets/splash.png",
+      "backgroundColor": "#FFF7ED",
+      "resizeMode": "contain"
     },
     "assetBundlePatterns": ["**/*"],
     "android": {
@@ -20,13 +23,10 @@
       },
       "permissions": ["RECEIVE_BOOT_COMPLETED", "VIBRATE"]
     },
-    "splash": {
-      "backgroundColor": "#FFF7ED",
-      "resizeMode": "contain"
-    },
     "web": {
       "bundler": "metro",
-      "output": "single"
+      "output": "single",
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       [
@@ -39,7 +39,7 @@
     "extra": {
       "apiUrl": "http://localhost:8787",
       "eas": {
-        "projectId": ""
+        "projectId": "394d9d20-f2f3-4298-93bc-2efeec294d51"
       }
     }
   }
