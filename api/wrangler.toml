@@ -14,7 +14,14 @@ database_name = "keepet"
 database_id = "REPLACE_WITH_D1_DATABASE_ID"
 migrations_dir = "migrations"
 
-# 寵物造型/動畫等靜態素材（Phase 2 才會實際使用）
+# Email 週報（Resend API）— 正式環境用 `wrangler secret put RESEND_API_KEY`
+# [vars] 可加 FROM_EMAIL = "KeePet <noreply@keepet.app>"
+
+# Cron Trigger：每週一 08:00 UTC 自動寄週報
+[triggers]
+crons = ["0 8 * * 1"]
+
+# 寵物造型/動畫等靜態素材（備用）
 # [[r2_buckets]]
 # binding = "ASSETS"
 # bucket_name = "keepet-assets"

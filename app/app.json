@@ -15,8 +15,14 @@
       "package": "com.keepet.app",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#FFF7ED"
-      }
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F97316"
+      },
+      "permissions": ["RECEIVE_BOOT_COMPLETED", "VIBRATE"]
+    },
+    "splash": {
+      "backgroundColor": "#FFF7ED",
+      "resizeMode": "contain"
     },
     "web": {
       "bundler": "metro",

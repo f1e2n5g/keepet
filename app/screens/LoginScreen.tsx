@@ -7,16 +7,20 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
+  Modal,
 } from "react-native";
 import { useMutation } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import { useSession } from "../lib/session";
 import { Button, Card, H1, Muted } from "../components/ui";
 import { colors, spacing, radius } from "../lib/theme";
+import { PrivacyPolicyScreen } from "./PrivacyPolicyScreen";
 
 export function LoginScreen() {
   const signIn = useSession((s) => s.signIn);
   const [mode, setMode] = useState<"login" | "register">("login");
+  const [showPrivacy, setShowPrivacy] = useState(false);
   const [familyName, setFamilyName] = useState("");
   const [parentName, setParentName] = useState("");
   const [email, setEmail] = useState("");
@@ -94,7 +98,16 @@ export function LoginScreen() {
           />
           <Muted>小朋友登入：請家長登入後，在「孩子」頁面把手機交給小朋友。</Muted>
         </Card>
+
+        {/* 隱私政策連結（Play Store 上架必須在登入頁顯示） */}
+        <Pressable onPress={() => setShowPrivacy(true)} style={{ marginTop: spacing.lg }}>
+          <Text style={styles.privacyLink}>隱私政策</Text>
+        </Pressable>
       </ScrollView>
+
+      <Modal visible={showPrivacy} animationType="slide">
+        <PrivacyPolicyScreen onBack={() => setShowPrivacy(false)} />
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -159,4 +172,5 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   error: { color: colors.danger, marginTop: spacing.sm, fontWeight: "600" },
+  privacyLink: { color: colors.muted, textDecorationLine: "underline", fontSize: 14 },
 });
