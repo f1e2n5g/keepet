@@ -11,7 +11,7 @@ JWT_SECRET = "dev-only-change-me"
 binding = "DB"
 database_name = "keepet"
 # 建立資料庫後，把 `wrangler d1 create keepet` 回傳的 id 填進來：
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "682b0de5-6cd1-4589-b094-b4e5c9acc1b6"
 migrations_dir = "migrations"
 
 # Email 週報（Resend API）— 正式環境用 `wrangler secret put RESEND_API_KEY`
